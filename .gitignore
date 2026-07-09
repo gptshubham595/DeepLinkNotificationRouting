@@ -16,3 +16,5 @@ local.properties
 .idea
 .oca
 fcm-backend/node_modules
+fcm-backend/serviceAccountKey.json
+app/google-services.json
