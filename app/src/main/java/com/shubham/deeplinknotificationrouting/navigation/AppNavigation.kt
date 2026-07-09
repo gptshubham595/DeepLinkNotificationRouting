@@ -1,33 +1,31 @@
 package com.shubham.deeplinknotificationrouting.navigation
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
+import com.shubham.deeplinknotificationrouting.screens.ScreenA
+import com.shubham.deeplinknotificationrouting.screens.ScreenB
 
 @Composable
-fun AppNavigation(navController: NavHostController) {
-    NavHost(navController = navController, startDestination = "home") {
-        composable("home") {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "Home Screen")
-            }
+fun AppNavigation(navController: NavHostController, fcmToken: String) {
+    NavHost(navController = navController, startDestination = "screenA") {
+        composable("screenA") {
+            ScreenA(
+                fcmToken = fcmToken,
+                onNavigateToB = { navController.navigate("screenB/false") }
+            )
         }
         composable(
-            route = "details/{id}",
-            deepLinks = listOf(navDeepLink { uriPattern = "app://routing/details/{id}" })
+            route = "screenB/{showSheet}",
+            arguments = listOf(navArgument("showSheet") { type = NavType.StringType }),
+            deepLinks = listOf(navDeepLink { uriPattern = "app://routing/screenB/{showSheet}" })
         ) { backStackEntry ->
-            val id = backStackEntry.arguments?.getString("id") ?: "No ID"
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "Details Screen, ID: $id")
-            }
+            val showSheetArg = backStackEntry.arguments?.getString("showSheet") ?: "false"
+            ScreenB(initialSheetState = showSheetArg.toBoolean())
         }
     }
 }

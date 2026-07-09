@@ -13,3 +13,6 @@
 .externalNativeBuild
 .cxx
 local.properties
+.idea
+.oca
+fcm-backend/node_modules
