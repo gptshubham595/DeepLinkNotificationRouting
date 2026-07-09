@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -14,14 +15,24 @@ import com.shubham.deeplinknotificationrouting.MainActivity
 
 class AppFirebaseMessagingService : FirebaseMessagingService() {
 
+    override fun onNewToken(token: String) {
+        super.onNewToken(token)
+        Log.d("FCM_TOKEN", "Token generated: $token")
+    }
+
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
-        // Extract routing path from data payload (e.g., {"route": "details/42"})
-        val route = remoteMessage.data["route"] ?: return
-        sendNotification(remoteMessage.notification?.title ?: "Notification", remoteMessage.notification?.body ?: "", route)
+        super.onMessageReceived(remoteMessage)
+
+        val route = remoteMessage.data["route"] ?: "screenA"
+        val title = remoteMessage.notification?.title ?: remoteMessage.data["title"] ?: "Notification Trigger"
+        val body = remoteMessage.notification?.body ?: remoteMessage.data["body"] ?: "Tap to navigate"
+
+        sendNotification(title, body, route)
     }
 
     private fun sendNotification(title: String, messageBody: String, route: String) {
         val channelId = "routing_channel"
+
         val intent = Intent(this, MainActivity::class.java).apply {
             action = Intent.ACTION_VIEW
             data = Uri.parse("app://routing/$route")
@@ -29,20 +40,28 @@ class AppFirebaseMessagingService : FirebaseMessagingService() {
         }
 
         val pendingIntent = PendingIntent.getActivity(
-            this, 0, intent,
+            this,
+            0,
+            intent,
             PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
         )
 
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(messageBody)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(channelId, "Routing Notifications", NotificationManager.IMPORTANCE_DEFAULT)
+            val channel = NotificationChannel(
+                channelId,
+                "Routing Channel",
+                NotificationManager.IMPORTANCE_DEFAULT
+            )
             notificationManager.createNotificationChannel(channel)
         }
 
