@@ -1,0 +1,45 @@
+flowchart TD
+    subgraph P1["PATH A — Notification (custom scheme is safe)"]
+        direction TB
+        BE["fcm-backend/send.js<br/><i>data-only</i> payload"]
+        FCM(["🔥 Firebase Cloud Messaging"])
+        SVC["AppFirebaseMessagingService<br/><b>onMessageReceived()</b>"]
+        PI["PendingIntent<br/><b>EXPLICIT</b> — names MainActivity<br/>data = app://routing/screenB/true"]
+        TAP(["🔔 User taps notification"])
+        BE --> FCM
+        FCM -->|"wakes app in<br/><i>any</i> state"| SVC
+        SVC --> PI --> TAP
+    end
+
+    subgraph P2["PATH B — SMS / Email / Browser (needs App Link)"]
+        direction TB
+        SMS(["✉️ https://deeplink-routing.web.app<br/>/routing/screenB/true"])
+        RES{"Host verified<br/>on this device?"}
+        WEB["🌐 Browser loads<br/>routing.html fallback"]
+        SMS --> RES
+        RES -->|"no — app not installed"| WEB
+    end
+
+    MA["<b>MainActivity</b><br/>launchMode=singleTop"]
+    COLD["cold start<br/>NavHost reads Activity intent"]
+    WARM["warm start<br/>onNewIntent → SharedFlow(replay=1)"]
+    NAV["NavController.handleDeepLink()"]
+    GRAPH["<b>NavHost</b><br/>navDeepLink registers BOTH:<br/>app://routing/{path}<br/>https://…/routing/{path}"]
+    SB["ScreenB(initialSheetState = true)"]
+    BS["ModalBottomSheet C"]
+
+    TAP -->|"explicit intent —<br/>no resolution, no chooser"| MA
+    RES -->|"✅ yes — direct,<br/>no chooser"| MA
+
+    MA --> COLD --> NAV
+    MA --> WARM --> NAV
+    NAV --> GRAPH --> SB --> BS
+
+    classDef ok fill:#1b5e20,stroke:#66bb6a,color:#fff
+    classDef bad fill:#7f1d1d,stroke:#ef5350,color:#fff
+    classDef fb fill:#e65100,stroke:#ffb74d,color:#fff
+    classDef app fill:#0d47a1,stroke:#64b5f6,color:#fff
+    class SB,BS ok
+    class WEB bad
+    class FCM,BE fb
+    class MA,GRAPH,NAV,SVC app

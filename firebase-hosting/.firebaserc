@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "movieapp-cdb85"
+  },
+  "targets": {
+    "movieapp-cdb85": {
+      "hosting": {
+        "deeplink": [
+          "deeplink-routing"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

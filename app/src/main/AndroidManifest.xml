@@ -21,12 +21,38 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Custom URI Scheme Deep Link Filter -->
+            <!--
+              (1) DEEP LINK - custom URI scheme.
+              No verification. Any app on the device may also declare
+              scheme="app" host="routing", which makes Android show a
+              disambiguation chooser. Ownership is NOT enforceable.
+              Only reachable from adb, another app, or a notification.
+            -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="app" android:host="routing" />
+            </intent-filter>
+
+            <!--
+              (2) APP LINK - verified https.
+              android:autoVerify="true" makes Android fetch
+              https://deeplink-routing.web.app/.well-known/assetlinks.json
+              at install time and confirm this package + signing SHA-256
+              is listed there. Once verified, this app owns these URLs
+              exclusively: no chooser, no hijacking, and taps from Gmail,
+              Chrome, WhatsApp etc. land directly in the app.
+              If the app is NOT installed, the same URL opens the web page.
+            -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="deeplink-routing.web.app"
+                    android:pathPrefix="/routing" />
             </intent-filter>
         </activity>
 

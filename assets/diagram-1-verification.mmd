@@ -1,0 +1,22 @@
+flowchart LR
+    A["📱 App installed<br/><b>autoVerify=&quot;true&quot;</b><br/>host: deeplink-routing.web.app"]
+    B["Android Domain<br/>Verification Agent"]
+    C[("🔥 Firebase Hosting<br/><b>deeplink-routing.web.app</b>")]
+    D["<b>/.well-known/assetlinks.json</b><br/>package_name<br/>sha256_cert_fingerprints"]
+    E{"package name<br/>+ signing SHA-256<br/>both match?"}
+    F["✅ <b>verified</b><br/>App owns these URLs<br/>exclusively — no chooser"]
+    G["❌ <b>none</b><br/>Links open in browser<br/>instead of the app"]
+
+    A --> B
+    B -->|"HTTPS GET at install time"| C
+    C --> D
+    D --> E
+    E -->|match| F
+    E -->|"mismatch, 404,<br/>or no network"| G
+
+    classDef ok fill:#1b5e20,stroke:#66bb6a,color:#fff
+    classDef bad fill:#7f1d1d,stroke:#ef5350,color:#fff
+    classDef fb fill:#e65100,stroke:#ffb74d,color:#fff
+    class F ok
+    class G bad
+    class C,D fb

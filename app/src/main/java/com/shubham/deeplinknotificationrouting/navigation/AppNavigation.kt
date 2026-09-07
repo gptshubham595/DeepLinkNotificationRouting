@@ -13,16 +13,25 @@ import com.shubham.deeplinknotificationrouting.screens.ScreenB
 @Composable
 fun AppNavigation(navController: NavHostController, fcmToken: String) {
     NavHost(navController = navController, startDestination = "screenA") {
-        composable("screenA") {
+
+        // screenA previously had no deepLinks, so an FCM push carrying the
+        // default route "screenA" produced a URI nothing could consume and the
+        // tap silently did nothing. Both patterns are registered now.
+        composable(
+            route = "screenA",
+            deepLinks = DeepLinks.patternsFor("screenA").map { navDeepLink { uriPattern = it } }
+        ) {
             ScreenA(
                 fcmToken = fcmToken,
                 onNavigateToB = { navController.navigate("screenB/false") }
             )
         }
+
         composable(
             route = "screenB/{showSheet}",
             arguments = listOf(navArgument("showSheet") { type = NavType.StringType }),
-            deepLinks = listOf(navDeepLink { uriPattern = "app://routing/screenB/{showSheet}" })
+            deepLinks = DeepLinks.patternsFor("screenB/{showSheet}")
+                .map { navDeepLink { uriPattern = it } }
         ) { backStackEntry ->
             val showSheetArg = backStackEntry.arguments?.getString("showSheet") ?: "false"
             ScreenB(initialSheetState = showSheetArg.toBoolean())

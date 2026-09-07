@@ -14,19 +14,30 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
-import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.google.firebase.messaging.FirebaseMessaging
 import com.shubham.deeplinknotificationrouting.navigation.AppNavigation
 import com.shubham.deeplinknotificationrouting.ui.theme.DeepLinkNotificationRoutingTheme
+import kotlinx.coroutines.flow.MutableSharedFlow
 
 class MainActivity : ComponentActivity() {
 
-    private lateinit var navController: NavHostController
     private val fcmTokenState = mutableStateOf("Loading Token...")
+
+    /**
+     * Warm-start deep links arrive on onNewIntent, which can fire before or
+     * after composition. Buffering them in a replay flow means the NavHost
+     * consumes whatever is pending as soon as it exists, instead of the old
+     * `::navController.isInitialized` guard silently dropping the intent.
+     *
+     * Cold-start links need no handling here: NavHost.setGraph inspects the
+     * launching Activity intent itself.
+     */
+    private val newIntents = MutableSharedFlow<Intent>(replay = 1, extraBufferCapacity = 4)
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -40,9 +51,19 @@ class MainActivity : ComponentActivity() {
         askNotificationPermission()
         logFcmToken()
 
+        Log.d("DEEPLINK", "onCreate intent data = ${intent?.data}")
+
         setContent {
             DeepLinkNotificationRoutingTheme {
-                navController = rememberNavController()
+                val navController = rememberNavController()
+
+                LaunchedEffect(navController) {
+                    newIntents.collect { pending ->
+                        Log.d("DEEPLINK", "onNewIntent data = ${pending.data}")
+                        navController.handleDeepLink(pending)
+                    }
+                }
+
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Box(modifier = Modifier.padding(innerPadding)) {
                         AppNavigation(
@@ -53,21 +74,12 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        handleIntent(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        handleIntent(intent)
-    }
-
-    private fun handleIntent(intent: Intent?) {
-        intent?.data?.let {
-            if (::navController.isInitialized) {
-                navController.handleDeepLink(intent)
-            }
-        }
+        if (intent.data != null) newIntents.tryEmit(intent)
     }
 
     private fun askNotificationPermission() {

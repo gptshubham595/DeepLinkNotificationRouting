@@ -1,0 +1,81 @@
+flowchart TD
+
+    subgraph VERIFY["① INSTALL-TIME VERIFICATION (one time, needs network)"]
+        INST["App installed<br/>autoVerify=true in manifest"]
+        AGENT["Android Domain<br/>Verification Agent"]
+        HOST[("Firebase Hosting<br/>deeplink-routing.web.app")]
+        AL["/.well-known/assetlinks.json<br/>package_name + SHA-256"]
+        MATCH{"package + signing cert<br/>match?"}
+        OK["Domain state: verified<br/>EXCLUSIVE ownership granted"]
+        NO["Domain state: none<br/>links fall back to browser"]
+
+        INST --> AGENT
+        AGENT -->|"HTTPS GET"| HOST
+        HOST --> AL
+        AL --> MATCH
+        MATCH -->|yes| OK
+        MATCH -->|"no / unreachable"| NO
+    end
+
+    subgraph PUSH["② NOTIFICATION PATH — custom scheme is safe here"]
+        BE["fcm-backend/send.js<br/>data-only payload<br/>route + linkType"]
+        FCM(["Firebase Cloud<br/>Messaging"])
+        SVC["AppFirebaseMessagingService<br/>onMessageReceived()"]
+        URI1["Build URI<br/>app://routing/screenB/true"]
+        PI["PendingIntent<br/>EXPLICIT: names MainActivity<br/>requestCode = uri.hashCode()"]
+        NOTIF["Notification posted<br/>channel: routing_channel"]
+        TAP(["User taps"])
+
+        BE -->|"admin.messaging().send()"| FCM
+        FCM -->|"data message<br/>wakes app in any state"| SVC
+        SVC --> URI1 --> PI --> NOTIF --> TAP
+    end
+
+    subgraph EXT["③ EXTERNAL LINK PATH — SMS, email, browser"]
+        SMS(["SMS / Gmail / WhatsApp<br/>https://deeplink-routing.web.app/routing/screenB/true"])
+        RES{"Android resolver:<br/>is host verified?"}
+        FALLBACK["Browser opens<br/>routing.html fallback page"]
+
+        SMS --> RES
+        RES -->|"no — app not installed"| FALLBACK
+    end
+
+    subgraph SCHEME["④ CUSTOM SCHEME FROM OUTSIDE — the weakness"]
+        RAW(["app://routing/screenB/true<br/>from adb or another app"])
+        CLAIM{"how many apps declare<br/>scheme=app host=routing?"}
+        CHOOSER["'Open with...' chooser<br/>or hijack — unverifiable"]
+
+        RAW --> CLAIM
+        CLAIM -->|"2 or more"| CHOOSER
+    end
+
+    subgraph APP["⑤ IN-APP ROUTING — one graph consumes every URI"]
+        MA["MainActivity<br/>launchMode=singleTop"]
+        COLD["cold start<br/>NavHost reads Activity intent"]
+        WARM["warm start<br/>onNewIntent → MutableSharedFlow(replay=1)"]
+        NAV["NavController.handleDeepLink()"]
+        GRAPH["NavHost — navDeepLink patterns<br/>app://routing/... AND https://.../routing/..."]
+        SB["ScreenB(initialSheetState = true)"]
+        BS["ModalBottomSheet C"]
+
+        MA --> COLD --> NAV
+        MA --> WARM --> NAV
+        NAV --> GRAPH --> SB --> BS
+    end
+
+    OK -.->|"enables"| RES
+    NO -.-> FALLBACK
+    TAP -->|"explicit intent<br/>no resolution, no chooser"| MA
+    RES -->|"yes — verified<br/>DIRECT, no chooser"| MA
+    CLAIM -->|"only ours"| MA
+    CHOOSER -.->|"user may pick wrong app"| MA
+
+    classDef good fill:#1b5e20,stroke:#66bb6a,color:#fff
+    classDef bad fill:#7f1d1d,stroke:#ef5350,color:#fff
+    classDef fb fill:#e65100,stroke:#ffb74d,color:#fff
+    classDef app fill:#0d47a1,stroke:#64b5f6,color:#fff
+
+    class OK,SB,BS good
+    class NO,CHOOSER,FALLBACK bad
+    class HOST,AL,FCM,BE fb
+    class MA,GRAPH,NAV,SVC app

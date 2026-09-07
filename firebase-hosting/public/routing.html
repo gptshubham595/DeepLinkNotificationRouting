@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>App Link fallback</title>
+<style>
+  body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:2rem;
+       background:#0f1115;color:#e6e8eb;line-height:1.6}
+  main{max-width:34rem;margin:0 auto}
+  code{background:#1c2029;padding:.15rem .4rem;border-radius:4px;font-size:.9em}
+  .u{word-break:break-all;background:#1c2029;padding:.75rem;border-radius:6px;display:block}
+</style>
+</head>
+<body>
+<main>
+  <h1>You are seeing the web page.</h1>
+  <p>That means the app is <strong>not installed</strong>, or the App Link
+     verification has not passed on this device.</p>
+  <p>Requested URL:</p>
+  <code class="u" id="u"></code>
+  <p>If the app were installed and verified, Android would have opened
+     <code>MainActivity</code> directly instead of loading this page &mdash;
+     with no &ldquo;Open with&hellip;&rdquo; chooser. That is the whole
+     difference between an App Link and a custom-scheme deep link.</p>
+</main>
+<script>document.getElementById('u').textContent = location.href;</script>
+</body>
+</html>

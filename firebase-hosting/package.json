@@ -1,0 +1,14 @@
+{
+  "name": "deeplink-hosting",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Firebase Hosting for Android App Link verification (.well-known/assetlinks.json)",
+  "scripts": {
+    "serve": "firebase emulators:start --only hosting",
+    "deploy": "firebase deploy --only hosting",
+    "deploy:preview": "firebase hosting:channel:deploy preview --expires 7d",
+    "verify:local": "curl -sS http://localhost:5000/.well-known/assetlinks.json | python3 -m json.tool",
+    "verify:live": "curl -sSD- -o/dev/null https://deeplink-routing.web.app/.well-known/assetlinks.json && curl -sS https://deeplink-routing.web.app/.well-known/assetlinks.json | python3 -m json.tool",
+    "verify:google": "curl -sS 'https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=https://deeplink-routing.web.app&relation=delegate_permission/common.handle_all_urls' | python3 -m json.tool"
+  }
+}
